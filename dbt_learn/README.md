@@ -1,63 +1,153 @@
-# dbt Learn — NYC Yellow Taxi Trips 2024
+# dbt — NYC Yellow Taxi Trips 2024
 
-Projet dbt/DuckDB qui nettoie et transforme les données publiques des taxis jaunes de New York pour l'année 2024.
+Projet d'apprentissage **dbt + DuckDB** consacré au nettoyage et à la transformation des données publiques des taxis jaunes de New York en 2024.
 
-## Architecture
+Les données proviennent de la [NYC Taxi & Limousine Commission (TLC)](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page). Elles sont lues directement au format Parquet et ne sont pas versionnées dans ce dépôt.
 
-- `models/taxi_trips/transform.sql` : aperçu limité de la source.
-- `models/taxi_trips/transform_data.sql` : modèle de nettoyage principal.
-- `models/taxi_trips/sources.yml` : définition des 12 fichiers Parquet TLC distants.
-- `models/taxi_trips/schema.yml` : documentation et tests de colonnes.
-- `tests/` : tests de données personnalisés.
+## Objectifs
 
-Les modèles sont matérialisés comme vues DuckDB dans la base configurée par le profil local.
+- Déclarer une source externe dans dbt.
+- Construire des modèles SQL versionnés et documentés.
+- Nettoyer les trajets incohérents avant leur analyse.
+- Tester les règles de qualité de données avec les tests dbt natifs, `dbt_expectations` et des tests SQL personnalisés.
+- Utiliser DuckDB comme entrepôt analytique local, sans serveur de base de données.
+
+## Architecture du projet
+
+```text
+.
+├── models/
+│   └── taxi_trips/
+│       ├── sources.yml          # Source TLC et fichiers Parquet distants
+│       ├── transform.sql        # Aperçu de la source
+│       ├── transform_data.sql   # Modèle principal de nettoyage
+│       └── schema.yml           # Documentation et tests de colonnes
+├── tests/                       # Tests SQL personnalisés
+├── analyses/                    # Requêtes exploratoires
+├── packages.yml                 # dbt_expectations
+├── profiles.yml.example         # Profil DuckDB sans information sensible
+└── .github/workflows/           # Validation dbt dans GitHub Actions
+```
+
+## Lignage
+
+```text
+NYC TLC Parquet (12 fichiers 2024)
+                │
+                ├── transform       → aperçu de 10 lignes
+                │
+                └── transform_data  → données nettoyées et enrichies
+                                      │
+                                      └── tests dbt et tests SQL
+```
+
+## Règles de transformation
+
+Le modèle `transform_data` conserve uniquement les trajets qui respectent les règles suivantes :
+
+- `passenger_count`, `trip_distance` et `total_amount` sont strictement positifs ;
+- l'heure de prise en charge est antérieure à l'heure de dépose ;
+- `store_and_fwd_flag = 'N'` ;
+- le pourboire est positif ou nul ;
+- le paiement est par carte (`payment_type = 1`) ou en espèces (`payment_type = 2`) ;
+- le départ et l'arrivée ont lieu en 2024 ;
+- la durée calculée est strictement positive.
+
+Le modèle ajoute notamment :
+
+- `payment_method` : traduction du code de paiement en `Credit card` ou `Cash` ;
+- `trip_duration_minutes` : différence en minutes entre la prise en charge et la dépose ;
+- `passenger_count` converti en entier.
+
+## Contrôles de qualité
+
+Les tests documentés dans `schema.yml` vérifient les valeurs nulles et les valeurs autorisées. Les tests SQL du dossier `tests/` vérifient aussi :
+
+- une distance strictement positive ;
+- une durée strictement positive ;
+- un nombre de passagers strictement positif ;
+- la présence des douze mois de 2024.
 
 ## Prérequis
 
-- Python 3.10 ou version ultérieure
-- Accès réseau aux fichiers TLC hébergés sur CloudFront
+- Python 3.10 ou version ultérieure ;
+- accès réseau aux fichiers Parquet TLC ;
+- Git, pour cloner et publier les changements.
 
-## Installation
-
-Depuis ce dossier :
+## Installation locale
 
 ```powershell
+git clone https://github.com/LIDONI/dbt.git
+cd dbt
+
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-dbt deps
+
 Copy-Item profiles.yml.example profiles.yml
+dbt deps
 ```
 
-Sous macOS/Linux, remplacez l'activation par `source .venv/bin/activate` et la copie par `cp profiles.yml.example profiles.yml`.
+Sous macOS/Linux :
 
-`profiles.yml` est volontairement ignoré par Git : il peut contenir des identifiants selon l'adaptateur utilisé. Pour ce projet DuckDB, le profil fourni écrit dans `output/transformed_data.db`.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp profiles.yml.example profiles.yml
+dbt deps
+```
 
-## Exécution
+## Utilisation
+
+Vérifier la configuration :
 
 ```powershell
 dbt debug --profiles-dir .
-dbt deps
+```
+
+Construire les modèles et exécuter les tests :
+
+```powershell
 dbt build --profiles-dir .
 ```
 
-Pour générer et consulter la documentation :
+Exécuter seulement le modèle principal et ses tests :
+
+```powershell
+dbt build --select transform_data --profiles-dir .
+```
+
+Générer la documentation dbt :
 
 ```powershell
 dbt docs generate --profiles-dir .
 dbt docs serve --profiles-dir .
 ```
 
-## Source de données et reproductibilité
+## Sécurité et fichiers locaux
 
-La source lit les douze fichiers `yellow_tripdata_2024-*.parquet` publiés par la [NYC Taxi & Limousine Commission](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page). Le fournisseur peut temporairement refuser l'accès HTTP ; un précédent lancement a notamment reçu un code 403 pour décembre 2024. Ce problème est externe au SQL du projet.
+Ne publiez jamais `profiles.yml` s'il contient des identifiants. Le dépôt fournit uniquement `profiles.yml.example`.
 
-En cas de blocage, téléchargez les fichiers depuis la source officielle et adaptez localement `external_location` dans `sources.yml` pour cibler vos fichiers Parquet. Ne versionnez pas les données brutes ni les bases DuckDB générées.
+Les artefacts générés (`target/`, `logs/`, `dbt_packages/`), les bases DuckDB (`*.duckdb`, `output/*.db`) et les fichiers d'environnement sont exclus par `.gitignore`.
 
-## Qualité et CI
+## Disponibilité de la source TLC
 
-La CI exécute `dbt deps` puis `dbt parse`. Elle ne lance pas `dbt build`, car ce dernier dépend de la disponibilité du fournisseur de données distant. Exécutez `dbt build --profiles-dir .` localement lorsque la source est accessible.
+La source CloudFront de TLC peut refuser ponctuellement certaines requêtes HTTP. Un code `403 Forbidden` est donc une indisponibilité externe et non un échec du SQL dbt. Dans ce cas, téléchargez les fichiers depuis le site officiel de TLC, puis adaptez localement `external_location` dans `models/taxi_trips/sources.yml` pour lire les Parquet téléchargés.
 
-## Publication GitHub
+## Intégration continue
 
-Publiez le contenu de ce dossier comme racine du dépôt. Les artefacts dbt, fichiers DuckDB, profils locaux et identifiants utilisateur sont exclus par `.gitignore`. Ajoutez une licence avant publication si vous souhaitez en accorder une explicitement.
+GitHub Actions exécute `dbt deps` puis `dbt parse` à chaque push et pull request. La CI ne lance pas `dbt build`, car ce dernier dépend de la disponibilité de la source TLC distante.
+
+## Publier dans ce dépôt
+
+Le dépôt GitHub étant destiné à ce projet, publiez **le contenu de ce dossier à la racine du dépôt**, pas le dossier parent `DBT practice` qui contient d'autres travaux.
+
+```powershell
+git add .
+git status
+git commit -m "Add dbt DuckDB taxi project"
+git push origin main
+```
+
+Avant le premier push, vérifiez que `profiles.yml`, les bases DuckDB et les dossiers générés n'apparaissent pas dans `git status`.
