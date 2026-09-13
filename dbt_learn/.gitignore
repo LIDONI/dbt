@@ -1,0 +1,13 @@
+
+target/
+dbt_packages/
+logs/
+.env
+
+# Local dbt configuration and user metadata may contain credentials or identifiers.
+profiles.yml
+.user.yml
+
+# Local DuckDB databases produced while developing or running the project.
+*.duckdb
+output/*.db

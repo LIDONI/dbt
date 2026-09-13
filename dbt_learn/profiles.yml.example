@@ -1,0 +1,7 @@
+dbt_learn:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "./output/transformed_data.db"
+      schema: main

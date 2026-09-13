@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+  - name: tlc_taxi_trips
+    description: >
+      Données publiques des trajets de taxis jaunes de New York, publiées par
+      NYC Taxi & Limousine Commission. L'accès dépend de la disponibilité de
+      l'hébergement CloudFront utilisé par DuckDB.
+    tables:
+      - name: yellow_tripdata_2024
+        description: "Données des trajets de taxi jaune pour l'année 2024."
+        meta:
+          external_location: >
+            (FROM read_parquet(
+              list_transform(
+                range(1, 13),
+                m -> 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-' || lpad(CAST(m AS VARCHAR), 2, '0') || '.parquet'
+              )
+            ))
+          formatter: oldstyle

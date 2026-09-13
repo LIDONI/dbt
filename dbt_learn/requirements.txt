@@ -1,0 +1,2 @@
+# dbt-core est installé comme dépendance de l'adaptateur.
+dbt-duckdb==1.11.0

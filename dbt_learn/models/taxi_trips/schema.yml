@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  - name: transform
+    description: "Aperçu de cinq colonnes clés des trajets de taxi jaune de New York en 2024."
+    columns:
+      - name: tpep_pickup_datetime
+        description: "Date et heure de prise en charge."
+        tests: [not_null]
+      - name: tpep_dropoff_datetime
+        description: "Date et heure de dépose."
+        tests: [not_null]
+      - name: passenger_count
+        description: "Nombre de passagers déclaré."
+        tests: [not_null]
+      - name: trip_distance
+        description: "Distance du trajet, en miles."
+        tests: [not_null]
+      - name: total_amount
+        description: "Montant total facturé au passager."
+        tests: [not_null]
+
+  - name: transform_data
+    description: "Jeu de données nettoyé et transformé des trajets de taxi jaune en 2024."
+    columns:
+      - name: tpep_pickup_datetime
+        description: "Date et heure de prise en charge."
+        tests: [not_null]
+      - name: tpep_dropoff_datetime
+        description: "Date et heure de dépose."
+        tests: [not_null]
+      - name: passenger_count
+        description: "Nombre de passagers, converti en entier."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+      - name: trip_distance
+        description: "Distance du trajet, en miles."
+        tests: [not_null]
+      - name: trip_duration_minutes
+        description: "Durée calculée du trajet, en minutes."
+        tests: [not_null]
+      - name: payment_method
+        description: "Moyen de paiement traduit depuis le code source."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Credit card", "Cash"]
+      - name: store_and_fwd_flag
+        description: "Indique si l'enregistrement a été stocké dans le véhicule avant envoi."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["N"]
+      - name: PULocationID
+        description: "Identifiant de la zone de prise en charge."
+        tests: [not_null]
+      - name: DOLocationID
+        description: "Identifiant de la zone de dépose."
+        tests: [not_null]
+      - name: fare_amount
+        description: "Tarif calculé par le compteur."
+        tests: [not_null]
+      - name: tip_amount
+        description: "Montant du pourboire."
+        tests: [not_null]
+      - name: tolls_amount
+        description: "Montant des péages."
+        tests: [not_null]
+      - name: congestion_surcharge
+        description: "Supplément de congestion."
+        tests: [not_null]
+      - name: extra
+        description: "Suppléments facturés."
+        tests: [not_null]
+      - name: mta_tax
+        description: "Taxe MTA."
+        tests: [not_null]
+      - name: Airport_fee
+        description: "Frais aéroportuaires."
+        tests: [not_null]
