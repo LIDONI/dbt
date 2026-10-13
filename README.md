@@ -1,6 +1,6 @@
 # dbt - NYC Yellow Taxi Trips
 
-Projet d'apprentissage **dbt + DuckDB** consacré au nettoyage et à la transformation des données publiques des taxis jaunes de New York en 2024.
+Projet d'apprentissage **dbt + DuckDB** consacré au nettoyage et à la transformation des données publiques des taxis jaunes de New York.
 
 Les données proviennent de la [NYC Taxi & Limousine Commission (TLC)](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page). Elles sont lues directement au format Parquet et ne sont pas versionnées dans ce dépôt.
 
