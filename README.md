@@ -1,4 +1,4 @@
-# dbt - NYC Yellow Taxi Trips 2024
+# dbt - NYC Yellow Taxi Trips
 
 Projet d'apprentissage **dbt + DuckDB** consacré au nettoyage et à la transformation des données publiques des taxis jaunes de New York en 2024.
 
